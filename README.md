@@ -1,5 +1,3 @@
-(open source)
-
 # winxp-app
 
 An Electron application with React and TypeScript
