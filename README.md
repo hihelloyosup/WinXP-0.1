@@ -1,3 +1,4 @@
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/c1aa61a2-1310-4057-a211-04afeeef3fcf" />
 # winxp-app
 
 An Electron application with React and TypeScript
