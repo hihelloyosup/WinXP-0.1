@@ -7,13 +7,12 @@ interface Props {
 }
 
 const USERS = [
-  { name: 'Camilla', icon: Icon.user, hint: 'A melhor usuária', password: '' },
-  { name: 'Convidado', icon: Icon.user, hint: 'Sem senha', password: '' }
+  { name: 'Usuário', icon: Icon.user },
+  { name: 'Convidado', icon: Icon.user }
 ]
 
 export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
   const [selected, setSelected] = useState<string | null>(USERS[0].name)
-  const [password, setPassword] = useState('')
 
   return (
     <Root>
@@ -38,32 +37,24 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             <UserCard
               key={u.name}
               $selected={selected === u.name}
-              onClick={() => setSelected(u.name)}
+              onClick={() => {
+              setSelected(u.name)
+              onLogin(u.name)
+            }}
             >
               <Avatar src={u.icon} />
               <UserInfo>
                 <UserName>{u.name}</UserName>
                 {selected === u.name && (
-                  <>
-                    <HintText>{u.hint}</HintText>
-                    <InputRow onClick={(e) => e.stopPropagation()}>
-                      <PasswordInput
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') onLogin(u.name)
-                        }}
-                        placeholder="Type your password"
-                      />
-                      <GoBtn
-                        onClick={() => onLogin(u.name)}
-                        title="Enter"
-                      >
-                        →
-                      </GoBtn>
-                    </InputRow>
-                  </>
+                  <InputRow onClick={(e) => e.stopPropagation()}>
+                    <GoBtn
+                      onClick={() => onLogin(u.name)}
+                      title="Enter"
+                    >
+                      →
+                    </GoBtn>
+                    <span style={{ fontSize: 12, opacity: 0.9 }}>Pressione Enter ou clique na seta</span>
+                  </InputRow>
                 )}
               </UserInfo>
             </UserCard>
@@ -188,26 +179,11 @@ const UserName = styled.div`
   font-weight: bold;
 `
 
-const HintText = styled.div`
-  font-size: 12px;
-  opacity: 0.85;
-  margin-top: 4px;
-`
-
 const InputRow = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-`
-
-const PasswordInput = styled.input`
-  padding: 4px 6px;
-  border: 1px solid #5c8dd6;
-  border-radius: 2px;
-  width: 170px;
-  font-size: 12px;
-  color: #000;
 `
 
 const GoBtn = styled.button`

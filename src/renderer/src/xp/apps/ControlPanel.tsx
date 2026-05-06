@@ -24,10 +24,31 @@ const CATEGORIES: PanelCategory[] = [
   { id: 'tools', title: 'Ferramentas do Sistema', desc: 'Atalhos para utilitários reais do sistema.', icon: Icon.controlPanel32 }
 ]
 
+function generateSidePanelGradient(baseColor: string): string {
+  const lighten = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = (num >> 16) + amt
+    const G = ((num >> 8) & 0x00ff) + amt
+    const B = (num & 0x0000ff) + amt
+    return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 + (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 + (B < 255 ? (B < 1 ? 0 : B) : 255)).toString(16).slice(1)
+  }
+  const darken = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = (num >> 16) - amt
+    const G = ((num >> 8) & 0x00ff) - amt
+    const B = (num & 0x0000ff) - amt
+    return '#' + (0x1000000 + (R > 0 ? R : 0) * 0x10000 + (G > 0 ? G : 0) * 0x100 + (B > 0 ? B : 0)).toString(16).slice(1)
+  }
+  return `linear-gradient(180deg, ${lighten(baseColor, 40)} 0%, ${lighten(baseColor, 20)} 100%)`
+}
+
 export const ControlPanel: React.FC = () => {
   const [view, setView] = useState<PanelView>('home')
   const openApp = useOpenApp()
   const { settings } = useSystemSettings()
+  const sidePanelGradient = generateSidePanelGradient(settings.windowColor)
 
   return (
     <Root>
@@ -46,8 +67,8 @@ export const ControlPanel: React.FC = () => {
       </XpToolbar>
 
       <Body>
-        <LeftPanel>
-          <PanelTitle>Painel de Controle</PanelTitle>
+        <LeftPanel $gradient={sidePanelGradient}>
+          <PanelTitle $color={settings.windowColor}>Painel de Controle</PanelTitle>
           <NavBtn onClick={() => setView('home')}>Página inicial</NavBtn>
           {CATEGORIES.map((cat) => (
             <NavBtn key={cat.id} onClick={() => setView(cat.id)}>
@@ -96,10 +117,30 @@ const HomeView: React.FC<{ onSelect: (next: PanelView) => void }> = ({ onSelect 
   </Grid>
 )
 
+const visualStyles = [
+  { name: 'Windows XP', value: 'xp' },
+  { name: 'Windows Classic', value: 'classic' },
+  { name: 'Alto Contraste Branco', value: 'high-contrast-white' },
+  { name: 'Alto Contraste Preto', value: 'high-contrast-black' },
+  { name: 'Alto Contraste #1', value: 'high-contrast-1' },
+  { name: 'Alto Contraste #2', value: 'high-contrast-2' }
+]
+
 const DesktopView: React.FC = () => {
   const { settings, updateSettings } = useSystemSettings()
   const [wallpaper, setWallpaper] = useState(settings.wallpaper)
-  const [screensaver, setScreensaver] = useState(settings.screensaver)
+  const [visualStyle, setVisualStyle] = useState(settings.visualStyle || 'xp')
+  const [screensaver, setScreensaver] = useState(settings.screensaver || 'Nenhum')
+  const [screensaverTimeout, setScreensaverTimeout] = useState(settings.screensaverTimeout || 60)
+
+  const screensaverOptions = [
+    { value: 'Nenhum', label: '(Nenhum)' },
+    { value: 'matrix', label: 'Matrix' },
+    { value: 'stars', label: 'Túnel de Estrelas' },
+    { value: 'bubbles', label: 'Bolhas' },
+    { value: 'logo', label: 'Janelas Flutuantes' },
+    { value: 'black', label: 'Tela Preta' }
+  ]
 
   return (
     <Section>
@@ -109,16 +150,53 @@ const DesktopView: React.FC = () => {
         <Row>
           <label>Papel de parede:</label>
           <select value={wallpaper} onChange={(e) => setWallpaper(e.target.value)}>
-            {['Bliss', 'Azul', 'Praia', 'Outono', 'Floresta'].map((it) => <option key={it}>{it}</option>)}
+            {['Bliss', 'Azul'].map((it) => <option key={it}>{it}</option>)}
           </select>
         </Row>
-        <Row>
-          <label>Proteção de tela:</label>
+        <Row style={{ marginTop: 8 }}>
+          <label>Protetor de tela:</label>
           <select value={screensaver} onChange={(e) => setScreensaver(e.target.value)}>
-            {['Nenhum', 'Marquee', 'Estrelas', 'Pipes 3D', 'Matrix'].map((it) => <option key={it}>{it}</option>)}
+            {screensaverOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </Row>
-        <XpButton onClick={() => updateSettings({ wallpaper, screensaver })}>Aplicar</XpButton>
+        {screensaver !== 'Nenhum' && (
+          <Row style={{ marginTop: 8 }}>
+            <label>Tempo de espera:</label>
+            <select
+              value={screensaverTimeout}
+              onChange={(e) => setScreensaverTimeout(Number(e.target.value))}
+            >
+              <option value={30}>30 segundos</option>
+              <option value={60}>1 minuto</option>
+              <option value={300}>5 minutos</option>
+              <option value={600}>10 minutos</option>
+              <option value={1800}>30 minutos</option>
+            </select>
+          </Row>
+        )}
+        <XpButton
+          style={{ marginTop: 10 }}
+          onClick={() => updateSettings({ wallpaper, visualStyle, screensaver, screensaverTimeout })}
+        >
+          Aplicar
+        </XpButton>
+      </fieldset>
+      <fieldset style={{ marginTop: 12 }}>
+        <legend>Esquema Visual</legend>
+        <Row>
+          <label>Estilo das janelas:</label>
+          <select value={visualStyle} onChange={(e) => setVisualStyle(e.target.value as any)}>
+            {visualStyles.map((s) => <option key={s.value} value={s.value}>{s.name}</option>)}
+          </select>
+        </Row>
+        <StylePreview $style={visualStyle}>
+          <div className="preview-window">
+            <div className="preview-titlebar">Janela de exemplo</div>
+            <div className="preview-content">Conteúdo</div>
+          </div>
+        </StylePreview>
       </fieldset>
     </Section>
   )
@@ -243,13 +321,12 @@ const AccessibilityView: React.FC = () => {
           <label>Idioma:</label>
           <select value={language} onChange={(e) => setLanguage(e.target.value)}>
             <option value="pt">Português</option>
-            <option value="en">Inglês</option>
-            <option value="zh">Chinês</option>
-            <option value="es">Espanhol</option>
-            <option value="ru">Russo</option>
-            <option value="fr">Francês</option>
+            <option value="zh">中文 (Chinês)</option>
           </select>
         </Row>
+        <p style={{ fontSize: 11, color: '#666', marginTop: 5 }}>
+          Apenas Português e Chinês estão disponíveis nesta versão.
+        </p>
       </fieldset>
       <XpButton style={{ marginTop: 10 }} onClick={() => updateSettings({ boldLetters, highContrast, narrator, language })}>Aplicar</XpButton>
     </Section>
@@ -298,17 +375,17 @@ const Body = styled.div`
   min-height: 0;
 `
 
-const LeftPanel = styled.aside`
+const LeftPanel = styled.aside<{ $gradient: string }>`
   width: 220px;
   border-right: 1px solid #9db8d2;
-  background: linear-gradient(180deg, #f4f9ff 0%, #d7e8ff 100%);
+  background: ${(p) => p.$gradient};
   padding: 10px;
   overflow: auto;
 `
 
-const PanelTitle = styled.h4`
+const PanelTitle = styled.h4<{ $color?: string }>`
   margin: 0 0 8px;
-  color: #073a84;
+  color: ${(p) => p.$color || '#073a84'};
   font-size: 13px;
 `
 
@@ -403,4 +480,60 @@ const Status = styled.div<{ $ok: boolean }>`
   font-weight: bold;
   color: ${(p) => (p.$ok ? '#1f7f00' : '#a80000')};
   margin: 4px 0 6px;
+`
+
+const StylePreview = styled.div<{ $style: string }>`
+  margin-top: 12px;
+  .preview-window {
+    width: 180px;
+    border: 2px solid ${(p) =>
+      p.$style === 'high-contrast-black' ? '#fff' :
+      p.$style === 'high-contrast-white' ? '#000' :
+      p.$style === 'high-contrast-1' ? '#ffff00' :
+      p.$style === 'high-contrast-2' ? '#00ffff' :
+      '#0831d9'};
+    border-radius: ${(p) => p.$style === 'xp' ? '8px 8px 0 0' : '0'};
+    overflow: hidden;
+    box-shadow: ${(p) => p.$style === 'classic' ? '2px 2px 0 #808080' : '2px 2px 8px rgba(0,0,0,0.3)'};
+    background: ${(p) =>
+      p.$style === 'high-contrast-black' ? '#000' :
+      p.$style === 'high-contrast-1' ? '#000' :
+      p.$style === 'high-contrast-2' ? '#000' :
+      '#ece9d8'};
+  }
+  .preview-titlebar {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: ${(p) =>
+      p.$style === 'high-contrast-black' ? '#fff' :
+      p.$style === 'high-contrast-white' ? '#000' :
+      p.$style === 'high-contrast-1' ? '#ffff00' :
+      p.$style === 'high-contrast-2' ? '#00ffff' :
+      '#fff'};
+    background: ${(p) =>
+      p.$style === 'xp' ? 'linear-gradient(180deg, #0058ee 0%, #3a93ff 50%, #0058ee 100%)' :
+      p.$style === 'classic' ? 'linear-gradient(180deg, #1084d0 0%, #1084d0 100%)' :
+      p.$style === 'high-contrast-white' ? '#fff' :
+      p.$style === 'high-contrast-black' ? '#000' :
+      p.$style === 'high-contrast-1' ? '#000080' :
+      p.$style === 'high-contrast-2' ? '#008080' :
+      '#0058ee'};
+    border-bottom: ${(p) =>
+      p.$style === 'high-contrast-white' ? '1px solid #000' :
+      p.$style === 'high-contrast-black' ? '1px solid #fff' :
+      '1px solid #0831d9'};
+  }
+  .preview-content {
+    padding: 8px;
+    font-size: 10px;
+    color: ${(p) =>
+      p.$style === 'high-contrast-black' ? '#fff' :
+      p.$style === 'high-contrast-1' ? '#fff' :
+      p.$style === 'high-contrast-2' ? '#fff' :
+      '#000'};
+  }
 `

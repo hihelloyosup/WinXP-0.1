@@ -63,6 +63,12 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('xp:quit', () => app.quit())
+  ipcMain.handle('xp:reload', () => {
+    const win = BrowserWindow.getFocusedWindow()
+    if (win) {
+      win.webContents.reload()
+    }
+  })
   ipcMain.handle('xp:getAppPath', () => app.getAppPath())
   ipcMain.handle('xp:getProjectPath', () => process.cwd())
   ipcMain.handle('xp:readDir', async (_, path: string) => {

@@ -3,20 +3,36 @@ import styled, { keyframes } from 'styled-components'
 
 interface Props {
   onDone: () => void
+  onF8?: () => void
+  autoF8?: boolean
 }
 
-export const BootScreen: React.FC<Props> = ({ onDone }) => {
+export const BootScreen: React.FC<Props> = ({ onDone, onF8, autoF8 }) => {
   const [phase, setPhase] = useState<'asus' | 'windows'>('asus')
 
   useEffect(() => {
+    if (autoF8) {
+      if (onF8) onF8()
+      return
+    }
     if (phase === 'asus') {
-      const t = setTimeout(() => setPhase('windows'), 15000)
+      const t = setTimeout(() => setPhase('windows'), 5000)
       return () => clearTimeout(t)
     } else {
       const t = setTimeout(onDone, 5000)
       return () => clearTimeout(t)
     }
-  }, [phase, onDone])
+  }, [phase, onDone, autoF8, onF8])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F8' && onF8) {
+        onF8()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onF8])
 
   if (phase === 'asus') {
     return (
@@ -32,29 +48,31 @@ export const BootScreen: React.FC<Props> = ({ onDone }) => {
   return (
     <Root>
       <Center>
-        <Logo>
-          <Flag>
-            <Pane $c="#ff3b30" />
-            <Pane $c="#4cd964" />
-            <Pane $c="#007aff" />
-            <Pane $c="#ffcc00" />
-          </Flag>
-          <LogoText>
-            Microsoft<span>®</span>
-            <br />
-            <BrandName>
-              Windows<Sup>xp</Sup>
-            </BrandName>
-          </LogoText>
-        </Logo>
+        {/* Windows XP Logo — flag + text layout exactly like XP boot screen */}
+        <XpLogoGroup>
+          <FlagGrid>
+            <FlagRed />
+            <FlagGreen />
+            <FlagBlue />
+            <FlagYellow />
+          </FlagGrid>
+          <XpTextGroup>
+            <MicrosoftText>Microsoft<Reg>®</Reg></MicrosoftText>
+            <WindowsText>Windows<XpSuper>xp</XpSuper></WindowsText>
+          </XpTextGroup>
+        </XpLogoGroup>
+
         <ProgressOuter>
           <ProgressInner />
         </ProgressOuter>
       </Center>
-      <Bottom>
+
+      <BottomLeft>
         <div>Copyright © Microsoft Corporation</div>
-        <Brand>Microsoft</Brand>
-      </Bottom>
+      </BottomLeft>
+      <BottomRight>
+        <MicrosoftLogo>Microsoft</MicrosoftLogo>
+      </BottomRight>
     </Root>
   )
 }
@@ -78,94 +96,134 @@ const Center = styled.div`
   gap: 50px;
 `
 
-const Logo = styled.div`
+/* ——— XP Logo ——— */
+const XpLogoGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
 `
 
-const tilt = keyframes`
-  0% { transform: skewY(-10deg) rotate(-2deg); filter: hue-rotate(0deg); }
-  100% { transform: skewY(-10deg) rotate(2deg); filter: hue-rotate(12deg); }
-`
-
-const Flag = styled.div`
+const FlagGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 2px;
-  width: 64px;
-  height: 52px;
-  transform: skewY(-10deg);
-  animation: ${tilt} 2.4s ease-in-out infinite alternate;
+  gap: 3px;
+  width: 76px;
+  height: 76px;
+  transform: perspective(300px) rotateY(-8deg) rotateX(4deg);
+  filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.7));
 `
 
-const Pane = styled.div<{ $c: string }>`
-  background: ${(p) => p.$c};
+const FlagPane = styled.div`
   border-radius: 2px;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 `
 
-const LogoText = styled.div`
-  font-size: 22px;
-  line-height: 1.2;
-  span { font-size: 10px; vertical-align: super; }
+const FlagRed = styled(FlagPane)`
+  background: radial-gradient(circle at 60% 40%, #ff6020, #cc2200);
 `
 
-const BrandName = styled.span`
-  font-size: 42px;
-  font-weight: bold;
-  letter-spacing: -1px;
+const FlagGreen = styled(FlagPane)`
+  background: radial-gradient(circle at 40% 40%, #88cc00, #448800);
 `
 
-const Sup = styled.span`
-  font-size: 18px !important;
+const FlagBlue = styled(FlagPane)`
+  background: radial-gradient(circle at 60% 60%, #3399ff, #0055cc);
+`
+
+const FlagYellow = styled(FlagPane)`
+  background: radial-gradient(circle at 40% 60%, #ffdd00, #cc8800);
+`
+
+const XpTextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  filter: drop-shadow(1px 1px 3px rgba(0,0,0,0.8));
+`
+
+const MicrosoftText = styled.div`
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+`
+
+const Reg = styled.span`
+  font-size: 9px;
   vertical-align: super;
-  color: #ff8c00;
-  margin-left: 2px;
 `
 
+const WindowsText = styled.div`
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-size: 42px;
+  font-weight: 300;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+  position: relative;
+`
+
+const XpSuper = styled.span`
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff6820;
+  vertical-align: super;
+  margin-left: 2px;
+  letter-spacing: 0;
+`
+
+/* ——— Progress Bar ——— */
 const ProgressOuter = styled.div`
   width: 220px;
-  height: 16px;
-  border: 1px solid #fff;
-  border-radius: 3px;
+  height: 14px;
+  border: 1px solid #3a5a9a;
+  border-radius: 7px;
   padding: 2px;
   background: #000;
   overflow: hidden;
 `
 
 const slide = keyframes`
-  0% { transform: translateX(-60px); }
-  100% { transform: translateX(220px); }
+  0% { transform: translateX(-70px); }
+  100% { transform: translateX(230px); }
 `
 
 const ProgressInner = styled.div`
-  display: flex;
-  gap: 2px;
   height: 100%;
-  width: 60px;
-  background: repeating-linear-gradient(90deg, #1b3fc8 0 6px, #3b7dff 6px 12px, #1b3fc8 12px 14px);
+  width: 70px;
+  background: linear-gradient(90deg, #1b3fc8 0%, #5588ff 40%, #3b6dff 70%, #1b3fc8 100%);
   animation: ${slide} 1.6s linear infinite;
-  border-radius: 2px;
+  border-radius: 5px;
 `
 
-const Bottom = styled.div`
+/* ——— Bottom labels ——— */
+const BottomLeft = styled.div`
   position: absolute;
-  bottom: 30px;
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  padding: 0 40px;
+  bottom: 28px;
+  left: 36px;
   font-size: 10px;
+  color: #888;
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+`
+
+const BottomRight = styled.div`
+  position: absolute;
+  bottom: 20px;
+  right: 36px;
+`
+
+const MicrosoftLogo = styled.div`
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-style: italic;
+  font-size: 20px;
+  font-weight: bold;
   color: #aaa;
 `
 
-const Brand = styled.div`
-  font-family: 'Trebuchet MS', Tahoma, sans-serif;
-  font-style: italic;
-`
-
+/* ——— ASUS screen ——— */
 const AsusContainer = styled.div`
   display: flex;
   flex-direction: column;

@@ -4,6 +4,7 @@ import { Icon } from '../icons'
 import { XpButton, XpField } from '../ui'
 import { useOpenApp, useWindows } from '../WindowSystem'
 import type { AppInstance } from '../types'
+import { useMsgBox } from '../XpMessageBox'
 
 const COMMANDS: Record<string, { app: string; desc: string }> = {
   notepad: { app: 'notepad', desc: 'Bloco de Notas' },
@@ -31,15 +32,25 @@ export const RunDialog: React.FC<{ instance: AppInstance }> = ({ instance }) => 
   const [text, setText] = useState('')
   const openApp = useOpenApp()
   const { close } = useWindows()
+  const { showMessage } = useMsgBox()
 
   const run = (): void => {
     const key = text.trim().toLowerCase()
+    if (key === 'ms dos' || key === 'ms-dos' || key === 'msdos') {
+      window.location.hash = '#msdos'
+      window.location.reload()
+      return
+    }
     const match = COMMANDS[key]
     if (match) {
       openApp(match.app)
       close(instance.id)
     } else {
-      alert(`Não foi possível localizar '${text}'.`)
+      showMessage({
+        title: 'Executar',
+        message: `O Windows não pode encontrar '${text}'. Certifique-se de que o nome foi digitado corretamente e tente novamente.`,
+        type: 'error'
+      })
     }
   }
 
@@ -64,7 +75,7 @@ export const RunDialog: React.FC<{ instance: AppInstance }> = ({ instance }) => 
       <Buttons>
         <XpButton onClick={run}>OK</XpButton>
         <XpButton onClick={() => close(instance.id)}>Cancelar</XpButton>
-        <XpButton onClick={() => alert('Procurar: recurso não disponível nesta demo.')}>Procurar...</XpButton>
+        <XpButton onClick={() => showMessage({ title: 'Executar', message: 'Procurar: recurso não disponível nesta demo.', type: 'info' })}>Procurar...</XpButton>
       </Buttons>
       <Suggestions>
         Comandos: {Object.keys(COMMANDS).slice(0, 10).join(', ')}...

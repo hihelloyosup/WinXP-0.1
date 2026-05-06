@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { Icon } from './icons'
 import { useSystemSettings } from './SystemSettings'
 import { theme } from './theme'
@@ -7,23 +7,35 @@ import { useWindows } from './WindowSystem'
 import { useVirtualFS } from './VirtualFileSystem'
 
 interface Props {
-  onStartClick: () => void
   startOpen: boolean
+  onStartClick: () => void
   username: string
+  onOpenSecurity?: () => void
 }
 
-export const Taskbar: React.FC<Props> = ({ onStartClick, startOpen, username: _username }) => {
+export const Taskbar: React.FC<Props> = ({
+  onOpenSecurity, onStartClick, startOpen, username: _username }) => {
   const { instances, focusedId, focus, minimize, restore } = useWindows()
-  const { settings } = useSystemSettings()
+  const { settings, updateSettings } = useSystemSettings()
   const { files } = useVirtualFS()
   const [now, setNow] = useState(() => new Date())
+  const [showBalloon, setShowBalloon] = useState(true)
+  const [clockHover, setClockHover] = useState(false)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 10000)
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    if (showBalloon) {
+      const timer = setTimeout(() => setShowBalloon(false), 8000)
+      return () => clearTimeout(timer)
+    }
+  }, [showBalloon])
+
   const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
+  const dateStr = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
   const isAppActive = (appId: string) => {
     const requiresExe = ['paint', 'notepad', 'cmd', 'ie']
@@ -61,11 +73,58 @@ export const Taskbar: React.FC<Props> = ({ onStartClick, startOpen, username: _u
         ))}
       </Tasks>
       <Tray>
-        <TrayIcon src={Icon.security16} title={settings.highContrast ? 'High contrast enabled' : 'Security'} />
-        <TrayIcon src={settings.muted ? Icon.error32 : Icon.volume16} title={settings.muted ? 'Mudo' : 'Volume'} />
-        <TrayIcon src={Icon.sound16} title="Audio" />
-        <TrayIcon src={settings.networkConnected ? Icon.wireless16 : Icon.error32} title={settings.networkConnected ? 'Rede conectada' : 'Rede desconectada'} />
-        <Clock>{time}</Clock>
+        {showBalloon && (
+          <NotificationBalloon>
+            <BalloonClose onClick={() => setShowBalloon(false)}>×</BalloonClose>
+            <BalloonTitle>
+              <BalloonIcon src={Icon.security16} alt="" />
+              Central de Segurança do Windows
+            </BalloonTitle>
+            <BalloonText>
+              Seu computador pode estar em risco. Clique aqui para verificar o status de segurança.
+            </BalloonText>
+            <BalloonArrow />
+          </NotificationBalloon>
+        )}
+        <TrayIcon
+          src={Icon.security16}
+          alt="security"
+          onClick={onOpenSecurity}
+          title="Centro de Segurança"
+        />
+        <TrayIcon
+          src={settings.muted ? Icon.mute16 : Icon.sound16}
+          alt="sound"
+          onClick={() => updateSettings({ muted: !settings.muted })}
+          title={settings.muted ? 'Ativar som' : 'Desativar som'}
+        />
+        <TrayIcon
+          src={settings.networkConnected ? Icon.wireless16 : Icon.noWireless16}
+          alt="network"
+          onClick={() => updateSettings({ networkConnected: !settings.networkConnected })}
+          title={settings.networkConnected ? 'Desconectar rede' : 'Conectar rede'}
+        />
+        <TrayIcon
+          src={Icon.msgInfo16}
+          alt="notifications"
+          onClick={() => {
+            // Mostra uma notificação de teste
+            const event = new CustomEvent('systemNotification', {
+              detail: { title: 'Notificações', message: 'Você não tem novas notificações.' }
+            })
+            window.dispatchEvent(event)
+          }}
+          title="Notificações"
+        />
+        <ClockArea 
+          onMouseEnter={() => setClockHover(true)} 
+          onMouseLeave={() => setClockHover(false)}
+        >
+          <Clock>{time}</Clock>
+          {clockHover && (
+            <DateTooltip>{dateStr}</DateTooltip>
+          )}
+        </ClockArea>
       </Tray>
     </Root>
   )
@@ -194,10 +253,108 @@ const TrayIcon = styled.img`
   height: 16px;
 `
 
+const ClockArea = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`
+
 const Clock = styled.div`
   color: #fff;
   font-size: 11px;
   padding: 0 4px 0 8px;
   min-width: 60px;
   text-align: right;
+`
+
+const DateTooltip = styled.div`
+  position: absolute;
+  bottom: 32px;
+  right: 0;
+  background: #ffffe1;
+  color: #000;
+  border: 1px solid #000;
+  padding: 4px 8px;
+  font-family: 'Tahoma', sans-serif;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 10000;
+  box-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  pointer-events: none;
+`
+
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+`
+
+const NotificationBalloon = styled.div`
+  position: absolute;
+  bottom: 34px;
+  right: 8px;
+  width: 260px;
+  background: #ffffe1;
+  border: 1px solid #000;
+  border-radius: 3px;
+  padding: 10px 12px;
+  font-family: 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #000;
+  z-index: 10001;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+  animation: ${fadeIn} 0.4s ease-out;
+  cursor: pointer;
+`
+
+const BalloonClose = styled.div`
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #666;
+  &:hover { color: #000; }
+`
+
+const BalloonTitle = styled.div`
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+`
+
+const BalloonIcon = styled.img`
+  width: 16px;
+  height: 16px;
+`
+
+const BalloonText = styled.div`
+  font-size: 11px;
+  line-height: 1.3;
+  color: #333;
+`
+
+const BalloonArrow = styled.div`
+  position: absolute;
+  bottom: -8px;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #ffffe1;
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 1px;
+    left: -9px;
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 9px solid #000;
+    z-index: -1;
+  }
 `

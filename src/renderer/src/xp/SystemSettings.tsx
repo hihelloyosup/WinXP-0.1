@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useMemo, useState } from 'react'
 
+export type VisualStyle = 'xp' | 'classic' | 'high-contrast-white' | 'high-contrast-black' | 'high-contrast-1' | 'high-contrast-2'
+
 export interface SystemSettings {
   wallpaper: string
   screensaver: string
+  screensaverTimeout: number
+  windowColor: string
+  visualStyle: VisualStyle
   networkConnected: boolean
   volume: number
   muted: boolean
@@ -25,6 +30,9 @@ interface SystemSettingsContextValue {
 const defaultSettings: SystemSettings = {
   wallpaper: 'Bliss',
   screensaver: 'Nenhum',
+  screensaverTimeout: 60,
+  windowColor: '#245edc',
+  visualStyle: 'xp',
   networkConnected: true,
   volume: 75,
   muted: false,

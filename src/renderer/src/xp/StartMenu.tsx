@@ -5,6 +5,7 @@ import { theme } from './theme'
 import { useOpenApp } from './WindowSystem'
 import { useVirtualFS } from './VirtualFileSystem'
 import { useTranslation } from './useTranslation'
+import { Sounds, playSound } from './sounds'
 
 interface Props {
   username: string
@@ -155,10 +156,10 @@ export const StartMenu: React.FC<Props> = ({ username, onClose, onShutdown }) =>
       </Body>
 
       <Bottom>
-        <BottomBtn onClick={() => onShutdown()}>
+        <BottomBtn onClick={() => { playSound(Sounds.logoff, 0.4); onShutdown(); }}>
           <BottomIcon src={Icon.logoff32} /> {t('Log Off')}
         </BottomBtn>
-        <BottomBtn onClick={onShutdown}>
+        <BottomBtn onClick={() => { playSound(Sounds.shutdown, 0.4); onShutdown(); }}>
           <BottomIcon src={Icon.shutdown} /> {t('Turn Off Computer')}
         </BottomBtn>
       </Bottom>

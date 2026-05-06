@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import styled, { css } from 'styled-components'
 import type { AppInstance } from './types'
 import { useWindows } from './WindowSystem'
+import { useSystemSettings } from './SystemSettings'
 import { theme } from './theme'
 
 interface Props {
@@ -15,7 +16,41 @@ interface Props {
 const MIN_W = 260
 const MIN_H = 160
 
+function generateTitleGradient(baseColor: string): string {
+  // Create a gradient based on the base color
+  const lighten = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = (num >> 16) + amt
+    const G = ((num >> 8) & 0x00ff) + amt
+    const B = (num & 0x0000ff) + amt
+    return '#' + (
+      0x1000000 +
+      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+      (B < 255 ? (B < 1 ? 0 : B) : 255)
+    ).toString(16).slice(1)
+  }
+  const darken = (hex: string, percent: number): string => {
+    const num = parseInt(hex.replace('#', ''), 16)
+    const amt = Math.round(2.55 * percent)
+    const R = (num >> 16) - amt
+    const G = ((num >> 8) & 0x00ff) - amt
+    const B = (num & 0x0000ff) - amt
+    return '#' + (
+      0x1000000 +
+      (R > 0 ? R : 0) * 0x10000 +
+      (G > 0 ? G : 0) * 0x100 +
+      (B > 0 ? B : 0)
+    ).toString(16).slice(1)
+  }
+  return `linear-gradient(180deg, ${darken(baseColor, 10)} 0%, ${baseColor} 10%, ${lighten(baseColor, 20)} 40%, ${baseColor} 80%, ${darken(baseColor, 15)} 100%)`
+}
+
 export const XpWindow: React.FC<Props> = ({ instance, focused, children, resizable = true, minSize }) => {
+  const { settings } = useSystemSettings()
+  const visualStyle = settings.visualStyle || 'xp'
+  const titleGradient = useMemo(() => generateTitleGradient(settings.windowColor), [settings.windowColor])
   const { move, resize, minimize, toggleMax, close, focus } = useWindows()
   const dragRef = useRef<{
     startX: number
@@ -109,10 +144,13 @@ export const XpWindow: React.FC<Props> = ({ instance, focused, children, resizab
     <WindowRoot
       style={style}
       $focused={focused}
+      $visualStyle={visualStyle}
       onPointerDown={() => focus(instance.id)}
     >
       <TitleBar
         $focused={focused}
+        $customGradient={titleGradient}
+        $visualStyle={visualStyle}
         onPointerDown={onPointerDown('move')}
         onDoubleClick={() => toggleMax(instance.id)}
       >
@@ -155,32 +193,64 @@ export const XpWindow: React.FC<Props> = ({ instance, focused, children, resizab
   )
 }
 
-const WindowRoot = styled.div<{ $focused: boolean }>`
+const WindowRoot = styled.div<{ $focused: boolean; $visualStyle?: string }>`
   position: absolute;
   display: flex;
   flex-direction: column;
-  background: ${theme.colors.windowBg};
-  border: 1px solid ${(p) => (p.$focused ? '#0831d9' : '#7f9db9')};
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
-  box-shadow: ${(p) =>
-    p.$focused ? '2px 2px 10px rgba(0,0,0,0.35)' : '1px 1px 4px rgba(0,0,0,0.25)'};
+  background: ${(p) =>
+    p.$visualStyle === 'high-contrast-black' || p.$visualStyle === 'high-contrast-1' || p.$visualStyle === 'high-contrast-2'
+      ? '#000'
+      : p.$visualStyle === 'high-contrast-white'
+        ? '#fff'
+        : theme.colors.windowBg};
+  border: ${(p) => {
+    if (p.$visualStyle === 'high-contrast-black') return '2px solid #fff'
+    if (p.$visualStyle === 'high-contrast-white') return '2px solid #000'
+    if (p.$visualStyle === 'high-contrast-1') return '2px solid #ffff00'
+    if (p.$visualStyle === 'high-contrast-2') return '2px solid #00ffff'
+    return `1px solid ${p.$focused ? '#0831d9' : '#7f9db9'}`
+  }};
+  border-top-left-radius: ${(p) => (p.$visualStyle === 'classic' ? '0' : '8px')};
+  border-top-right-radius: ${(p) => (p.$visualStyle === 'classic' ? '0' : '8px')};
+  box-shadow: ${(p) => {
+    if (p.$visualStyle?.startsWith('high-contrast')) return 'none'
+    if (p.$visualStyle === 'classic') return '2px 2px 0 #808080'
+    return p.$focused ? '2px 2px 10px rgba(0,0,0,0.35)' : '1px 1px 4px rgba(0,0,0,0.25)'
+  }};
   overflow: hidden;
 `
 
-const TitleBar = styled.div<{ $focused: boolean }>`
+const TitleBar = styled.div<{ $focused: boolean; $customGradient?: string; $visualStyle?: string }>`
   height: 28px;
   display: flex;
   align-items: center;
   padding: 0 2px 0 5px;
-  color: #fff;
+  color: ${(p) => {
+    if (p.$visualStyle === 'high-contrast-black') return '#fff'
+    if (p.$visualStyle === 'high-contrast-white') return '#000'
+    if (p.$visualStyle === 'high-contrast-1') return '#ffff00'
+    if (p.$visualStyle === 'high-contrast-2') return '#00ffff'
+    return '#fff'
+  }};
   font-family: ${theme.fonts.ui};
   font-weight: bold;
   font-size: 12px;
   cursor: default;
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
-  background: ${(p) => (p.$focused ? theme.gradients.titleActive : theme.gradients.titleInactive)};
-  border-bottom: 1px solid ${(p) => (p.$focused ? '#0831d9' : '#7f9db9')};
+  text-shadow: ${(p) => (p.$visualStyle?.startsWith('high-contrast') ? 'none' : '1px 1px 0 rgba(0, 0, 0, 0.4)')};
+  background: ${(p) => {
+    if (!p.$focused) return theme.gradients.titleInactive
+    if (p.$visualStyle === 'high-contrast-black') return '#000'
+    if (p.$visualStyle === 'high-contrast-white') return '#fff'
+    if (p.$visualStyle === 'high-contrast-1') return '#000080'
+    if (p.$visualStyle === 'high-contrast-2') return '#008080'
+    if (p.$visualStyle === 'classic') return 'linear-gradient(180deg, #1084d0 0%, #1084d0 100%)'
+    return p.$customGradient || theme.gradients.titleActive
+  }};
+  border-bottom: ${(p) => {
+    if (p.$visualStyle === 'high-contrast-black') return '1px solid #fff'
+    if (p.$visualStyle === 'high-contrast-white') return '1px solid #000'
+    return `1px solid ${p.$focused ? '#0831d9' : '#7f9db9'}`
+  }};
   flex-shrink: 0;
 `
 

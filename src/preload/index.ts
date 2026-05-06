@@ -20,7 +20,8 @@ const api = {
     ipcRenderer.on('xp:fs-event', handler)
     return () => ipcRenderer.removeListener('xp:fs-event', handler)
   },
-  quit: () => ipcRenderer.invoke('xp:quit')
+  quit: () => ipcRenderer.invoke('xp:quit'),
+  reload: () => ipcRenderer.invoke('xp:reload')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

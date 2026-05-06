@@ -1,4 +1,3 @@
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/c1aa61a2-1310-4057-a211-04afeeef3fcf" />
 # winxp-app
 
 An Electron application with React and TypeScript
@@ -27,12 +26,9 @@ $ npm run dev
 # For windows
 $ npm run build:win
 
-
 # For macOS
 $ npm run build:mac
 
 # For Linux
 $ npm run build:linux
 ```
-<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/f05058c1-7719-4bf0-9d6b-df7ac51efce1" />
-

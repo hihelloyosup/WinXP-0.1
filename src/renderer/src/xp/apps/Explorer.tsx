@@ -15,6 +15,7 @@ import {
 } from '../ui'
 import { useOpenApp } from '../WindowSystem'
 import { useVirtualFS } from '../VirtualFileSystem'
+import { useMsgBox } from '../XpMessageBox'
 
 type EntryKind = 'drive' | 'folder' | 'file' | 'app' | 'control'
 
@@ -48,6 +49,7 @@ export const Explorer: React.FC<ExplorerProps> = ({ variant }) => {
   const [promptValue, setPromptValue] = useState('')
   const openApp = useOpenApp()
   const { getChildren, createFile, deleteFile, getFileById, getTrash, emptyTrash, deletedRealFiles, deleteRealFile } = useVirtualFS()
+  const { showMessage } = useMsgBox()
 
   const [projectFiles, setProjectFiles] = useState<Entry[]>([])
 
@@ -328,27 +330,38 @@ export const Explorer: React.FC<ExplorerProps> = ({ variant }) => {
     if (!entry) return
 
     if (entry.isRealProjectFile && entry.realPath) {
-      const confirmed = window.confirm(
-        `Remover "${selected}" apenas nesta simulação?\n\n` +
-        'Isso NAO deleta o arquivo real do projeto.'
-      )
-      if (!confirmed) return
-      // Safe mode: never touch real disk files from the simulated Explorer.
-      deleteRealFile(entry.realPath)
-      setSelected(null)
+      showMessage({
+        title: 'Confirmar Exclusão',
+        message: `Remover "${selected}" apenas nesta simulação?\n\nIsso NÃO deleta o arquivo real do projeto.`,
+        type: 'warning',
+        buttons: ['Sim', 'Não'],
+        onButton: (btn) => {
+          if (btn === 'Sim') {
+            deleteRealFile(entry.realPath!)
+            setSelected(null)
+          }
+        }
+      })
       return
     }
 
     if (!entry.virtualId) return
-    const confirmed = window.confirm(`Tem certeza que deseja deletar "${selected}"?`)
-    if (!confirmed) {
-      console.log('User cancelou delete')
-      return
-    }
-    console.log('Deletando arquivo com ID:', entry.virtualId)
-    deleteFile(entry.virtualId)
-    setSelected(null)
-  }, [entries, deleteFile, deleteRealFile, selected, variant])
+    showMessage({
+      title: 'Confirmar Exclusão',
+      message: `Tem certeza que deseja deletar "${selected}"?`,
+      type: 'warning',
+      buttons: ['Sim', 'Não'],
+      onButton: (btn) => {
+        if (btn === 'Sim') {
+          console.log('Deletando arquivo com ID:', entry.virtualId)
+          deleteFile(entry.virtualId!)
+          setSelected(null)
+        } else {
+          console.log('User cancelou delete')
+        }
+      }
+    })
+  }, [entries, deleteFile, deleteRealFile, selected, variant, showMessage])
 
   return (
     <Root>

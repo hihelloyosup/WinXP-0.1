@@ -41,6 +41,8 @@ interface VirtualFSContextType {
   deletedRealFiles: string[]
   deleteRealFile: (path: string) => void 
   reset: () => void
+  loadLastGood: () => void
+  saveBackup: () => void
 }
 
 const VirtualFSContext = createContext<VirtualFSContextType | undefined>(undefined)
@@ -85,7 +87,12 @@ export const VirtualFSProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     
     if (isCritical(id)) {
-      window.dispatchEvent(new Event('bsod'))
+      const bsodEnabled = localStorage.getItem('bsodEnabled') !== 'false'
+      if (bsodEnabled) {
+        window.dispatchEvent(new Event('bsod'))
+      } else {
+        window.dispatchEvent(new CustomEvent('systemWarning', { detail: { message: 'AVISO: Arquivo de sistema crítico deletado! O sistema pode apresentar instabilidade.' } }))
+      }
     }
     
     setFiles((prev) => {
@@ -126,7 +133,10 @@ export const VirtualFSProvider: React.FC<{ children: ReactNode }> = ({ children 
     setDeletedRealFiles(prev => [...prev, path])
     const lowerPath = path.toLowerCase()
     if (lowerPath.includes('src') || lowerPath.includes('node_modules') || lowerPath.includes('package.json')) {
-      window.dispatchEvent(new Event('bsod'))
+      const bsodEnabled = localStorage.getItem('bsodEnabled') !== 'false'
+      if (bsodEnabled) {
+        window.dispatchEvent(new Event('bsod'))
+      }
     }
   }
 
@@ -135,9 +145,24 @@ export const VirtualFSProvider: React.FC<{ children: ReactNode }> = ({ children 
     setDeletedRealFiles([])
   }
 
+  const loadLastGood = () => {
+    const backup = localStorage.getItem('xp-virtual-fs-backup')
+    if (backup) {
+      try {
+        setFiles(JSON.parse(backup))
+      } catch {
+        setFiles(initialFiles)
+      }
+    }
+  }
+
+  const saveBackup = () => {
+    localStorage.setItem('xp-virtual-fs-backup', JSON.stringify(files))
+  }
+
   return (
     <VirtualFSContext.Provider
-      value={{ files, getChildren, createFile, deleteFile, moveToTrash, moveFile, restoreFromTrash, getTrash, emptyTrash, fileExists, getFileById, deletedRealFiles, deleteRealFile, reset }}
+      value={{ files, getChildren, createFile, deleteFile, moveToTrash, moveFile, restoreFromTrash, getTrash, emptyTrash, fileExists, getFileById, deletedRealFiles, deleteRealFile, reset, loadLastGood, saveBackup }}
     >
       {children}
     </VirtualFSContext.Provider>

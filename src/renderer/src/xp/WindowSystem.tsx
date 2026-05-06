@@ -208,7 +208,19 @@ export function useOpenApp(): (defId: string, args?: unknown) => void {
         if (requiresExe.includes(defId)) {
           const exeExists = files.some(f => f.appId === defId && f.name.toLowerCase().endsWith('.exe') && f.deletedAt === undefined)
           if (!exeExists) {
-            alert(`Erro: O arquivo executável para o aplicativo '${def.title}' não foi encontrado.`)
+            // Em vez de chamar showXpMessage que pode dar erro se o contexto não estiver montado na árvore certa,
+            // ou se causar problemas com as janelas, usamos a versão global se existir, senão alert.
+            // Para ser 100% seguro em qualquer lugar.
+            const globalShowMessage = (window as any).showXpMessage
+            if (globalShowMessage) {
+              globalShowMessage({
+                title: 'Erro',
+                message: `O arquivo executável para o aplicativo '${def.title}' não foi encontrado.`,
+                type: 'error'
+              })
+            } else {
+              alert(`Erro: O arquivo executável para o aplicativo '${def.title}' não foi encontrado.`)
+            }
             return
           }
         }

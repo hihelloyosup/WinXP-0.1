@@ -150,6 +150,9 @@ export const Icon = {
   access16: icon227,
   risk16: icon229,
   wireless16: icon234,
+  noWireless16: icon308,
+  mute16: icon120,
+  msgInfo16: icon505,
   accessibility16: icon238,
   myDocs16: icon300,
   pictures16: icon302,
@@ -215,6 +218,8 @@ export const Icon = {
   paint32: icon680_32,
   security32: icon111_32,
   error32: icon897_32,
+  error16: icon892,
+  warning16: icon894,
   access32: icon227_32,
 
   // Named icons

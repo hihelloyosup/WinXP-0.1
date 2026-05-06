@@ -19,6 +19,7 @@ import { Regedit } from './Regedit'
 import { SecurityCenter } from './SecurityCenter'
 import { CommandPrompt } from './CommandPrompt'
 import { TaskManager } from './TaskManager'
+import { Pong } from './Pong'
 
 export const APPS: AppDefinition[] = [
   {
@@ -193,5 +194,12 @@ export const APPS: AppDefinition[] = [
     icon: Icon.myComputer32,
     defaultSize: { width: 640, height: 480 },
     render: () => <TaskManager />
+  },
+  {
+    id: 'pong',
+    title: 'Pong XP',
+    icon: Icon.pinball,
+    defaultSize: { width: 680, height: 480 },
+    render: () => <Pong />
   }
 ]

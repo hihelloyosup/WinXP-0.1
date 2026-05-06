@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import styled from 'styled-components'
 import { Icon } from '../icons'
 import { XpToolbar, XpToolbarBtn } from '../ui'
+import { Tutorial } from './Tutorial'
 
 const TOPICS: Record<string, { title: string; body: React.ReactNode }> = {
   welcome: {
@@ -58,6 +59,10 @@ const TOPICS: Record<string, { title: string; body: React.ReactNode }> = {
         </ol>
       </>
     )
+  },
+  tutorial: {
+    title: 'Tutorial - Windows XP Emulado',
+    body: <Tutorial />
   }
 }
 
@@ -95,11 +100,14 @@ export const HelpCenter: React.FC = () => {
           <TopicBtn $active={topic === 'security'} onClick={() => setTopic('security')}>
             Manter o computador seguro
           </TopicBtn>
+          <TopicBtn $active={topic === 'tutorial'} onClick={() => setTopic('tutorial')}>
+            Tutorial do Sistema
+          </TopicBtn>
           <h4>Solicitar assistência</h4>
           <Link>Convidar um amigo com a Assistência Remota</Link>
           <Link>Conectar-se ao suporte da Microsoft</Link>
         </Aside>
-        <Content>{TOPICS[topic].body}</Content>
+        <Content $isTutorial={topic === 'tutorial'}>{TOPICS[topic].body}</Content>
       </Body>
     </Root>
   )
@@ -179,9 +187,9 @@ const Link = styled.a`
   cursor: pointer;
 `
 
-const Content = styled.div`
+const Content = styled.div<{ $isTutorial?: boolean }>`
   flex: 1;
-  padding: 16px 22px;
+  padding: ${(p) => (p.$isTutorial ? '0' : '16px 22px')};
   background: #fff;
   overflow: auto;
   font-size: 12px;

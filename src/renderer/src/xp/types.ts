@@ -26,4 +26,26 @@ export interface AppInstance {
   args?: unknown
 }
 
-export type PowerState = 'BOOTING' | 'LOGIN' | 'RUNNING' | 'SHUTTING_DOWN' | 'BSOD' | 'OFF'
+export type PowerState = 'BOOTING' | 'ADVANCED_BOOT_MENU' | 'LOGIN' | 'RUNNING' | 'SHUTTING_DOWN' | 'BSOD' | 'OFF'
+
+export type DebugOption = 
+  | 'no-icons'
+  | 'inverted-colors'
+  | 'random-icons'
+  | 'glitch-mode'
+  | 'slow-motion'
+  | 'matrix-mode'
+  | 'grayscale'
+  | 'flicker'
+
+export type BootOption = 
+  | 'normal' 
+  | 'safe' 
+  | 'safe-network' 
+  | 'safe-cmd' 
+  | 'log' 
+  | 'vga' 
+  | 'last-good' 
+  | 'dsrm' 
+  | 'debug' 
+  | 'restore'

@@ -84,7 +84,6 @@ export const CommandPrompt: React.FC<{ instance: AppInstance }> = ({ instance })
   const [lines, setLines] = useState<string[]>([
     'Microsoft Windows XP [versão 5.1.2600]',
     '(C) Copyright 1985-2003 Microsoft Corp.',
-    `Comandos: ${COMMAND_DEFS.length} total (${COMMAND_DEFS.filter((c) => !c.easterEgg).length} reais + 3 easter eggs).`,
     ''
   ])
   const [history, setHistory] = useState<string[]>([])
@@ -178,9 +177,21 @@ export const CommandPrompt: React.FC<{ instance: AppInstance }> = ({ instance })
     setInput('')
 
     switch (lower) {
-      case 'help':
-        append(...COMMAND_DEFS.map((c) => `${c.name.padEnd(10)} - ${c.description}`), '')
+      case 'help': {
+        const usefulCommands = [
+          { name: 'help', desc: 'Mostra esta ajuda' },
+          { name: 'cls', desc: 'Limpa a tela' },
+          { name: 'dir', desc: 'Lista arquivos' },
+          { name: 'cd', desc: 'Muda diretório' },
+          { name: 'echo', desc: 'Exibe mensagem' },
+          { name: 'calc', desc: 'Abre calculadora' },
+          { name: 'notepad', desc: 'Abre bloco de notas' },
+          { name: 'explorer', desc: 'Abre Meu Computador' },
+          { name: 'exit', desc: 'Fecha o prompt' }
+        ]
+        append('Comandos úteis:', ...usefulCommands.map((c) => `  ${c.name.padEnd(10)} - ${c.desc}`), '')
         return
+      }
       case 'cls':
       case 'clear':
         setLines([])
@@ -373,7 +384,7 @@ export const CommandPrompt: React.FC<{ instance: AppInstance }> = ({ instance })
       </TerminalArea>
       <XpStatusBar>
         <XpStatusField>{mode === 'shell' ? 'Pronto' : mode === 'matrix' ? 'Modo Matrix' : 'Snake ASCII'}</XpStatusField>
-        <XpStatusField>{COMMAND_DEFS.length} comandos</XpStatusField>
+        <XpStatusField>Pronto</XpStatusField>
       </XpStatusBar>
     </Root>
   )

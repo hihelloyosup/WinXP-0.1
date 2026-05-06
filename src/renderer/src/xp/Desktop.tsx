@@ -5,6 +5,8 @@ import { Icon } from './icons'
 import { useOpenApp } from './WindowSystem'
 import { useVirtualFS } from './VirtualFileSystem'
 import { APPS } from './apps'
+import type { DebugOption } from './types'
+import { showXpMessage } from './XpMessageBox'
 
 const GRID_COLS = 8
 const GRID_ROWS = 4
@@ -24,6 +26,8 @@ export interface DesktopIconDef {
 interface Props {
   icons: DesktopIconDef[]
   wallpaperName?: string
+  safeMode?: boolean
+  debugOption?: DebugOption | null
   onIconsChange?: (icons: DesktopIconDef[]) => void
   children?: React.ReactNode
 }
@@ -66,7 +70,7 @@ const wallpaperByName: Record<string, string> = {
   Azul: ''
 }
 
-export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIconsChange, children }) => {
+export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', safeMode, debugOption, onIconsChange, children }) => {
   const openApp = useOpenApp()
   const { files, createFile, deleteFile, getTrash } = useVirtualFS()
   const [selected, setSelected] = useState<string | null>(null)
@@ -80,7 +84,11 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
   const gridRef = useRef<HTMLDivElement>(null)
 
   const iconsWithRecycleState = useMemo(() => {
+    if (debugOption === 'no-icons') return []
+    
     const recycleIsFull = getTrash().length > 0
+    const allIcons = Object.values(Icon)
+    
     return icons
       .filter((icon) => {
         const requiresExe = ['paint', 'notepad', 'cmd', 'ie']
@@ -90,6 +98,11 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
         return true
       })
       .map((icon) => {
+        if (debugOption === 'random-icons') {
+          const randomIcon = allIcons[Math.floor(Math.random() * allIcons.length)] as string
+          return { ...icon, icon: randomIcon }
+        }
+        
         if (icon.id === 'recycle') {
           return {
             ...icon,
@@ -98,7 +111,7 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
         }
         return icon
       })
-  }, [icons, files, getTrash])
+  }, [icons, files, getTrash, debugOption])
 
   const onBgMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -164,7 +177,7 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
       type === 'folder' ? 'Digite o nome da pasta:' :
       'Digite o nome do atalho:'
     
-    const promptText2 = type === 'shortcut' ? 'Digite o ID do app (ex: notepad, paint, calculator):' : undefined
+    const promptText2 = type === 'shortcut' ? 'Digite o ID do app:\n(notepad, calculator, paint, ie, cmd, taskMgr...)' : undefined
 
     setPromptValue1('')
     setPromptValue2('')
@@ -185,12 +198,13 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
           vfsId = createFile(name.trim(), 'folder', 'desktop')
         } else if (type === 'shortcut') {
           if (!appIdStr) {
-            alert('Erro: É necessário informar o ID do app!')
+            showXpMessage({ title: 'Erro', message: 'É necessário informar o ID do app!', type: 'error' })
             return
           }
           const app = APPS.find(a => a.id === appIdStr.trim())
           if (!app) {
-            alert(`Erro: App com ID "${appIdStr.trim()}" não encontrado!`)
+            const availableApps = APPS.map(a => a.id).join(', ')
+            showXpMessage({ title: 'Erro', message: `App com ID "${appIdStr.trim()}" não encontrado!\n\nApps disponíveis:\n${availableApps}`, type: 'error' })
             return
           }
           icon = app.icon
@@ -297,7 +311,18 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
   )
 
   return (
-    <DesktopRoot onMouseDown={onBgMouseDown} onContextMenu={onContextMenu} $bg={wallpaperByName[wallpaperName] ?? blissUrl}>
+    <DesktopRoot onMouseDown={onBgMouseDown} onContextMenu={onContextMenu} $bg={safeMode ? '' : (wallpaperByName[wallpaperName] ?? blissUrl)} $safeMode={safeMode}>
+      {safeMode && (
+        <>
+          <SafeText style={{ top: 10, left: 10 }}>Modo de Segurança</SafeText>
+          <SafeText style={{ top: 10, right: 10 }}>Modo de Segurança</SafeText>
+          <SafeText style={{ bottom: 40, left: 10 }}>Modo de Segurança</SafeText>
+          <SafeText style={{ bottom: 40, right: 10 }}>Modo de Segurança</SafeText>
+          <SafeText style={{ top: 10, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
+            Microsoft (R) Windows XP(R) (Build 2600)
+          </SafeText>
+        </>
+      )}
       <IconGrid ref={gridRef}>
         {iconsWithRecycleState.map((it) => {
           const isDragging = dragId === it.id
@@ -328,9 +353,28 @@ export const Desktop: React.FC<Props> = ({ icons, wallpaperName = 'Bliss', onIco
         <>
           <ContextMenuBackdrop onMouseDown={() => setContextMenu(null)} />
           <ContextMenu style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y }}>
-            <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('file'); setContextMenu(null) }}>Novo documento</ContextMenuItem>
-            <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('folder'); setContextMenu(null) }}>Nova pasta</ContextMenuItem>
-            <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('shortcut'); setContextMenu(null) }}>Novo atalho</ContextMenuItem>
+            <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); setContextMenu(null); window.location.reload() }}>
+              <CtxIcon src={Icon.refresh} alt="" /> Atualizar
+            </ContextMenuItem>
+            <ContextMenuSep />
+            <ContextMenuSub>
+              <CtxIcon src={Icon.folder} alt="" /> Novo ▸
+              <ContextSubMenu className="ctx-submenu">
+                <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('file'); setContextMenu(null) }}>
+                  <CtxIcon src={Icon.notepad16} alt="" /> Documento de Texto
+                </ContextMenuItem>
+                <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('folder'); setContextMenu(null) }}>
+                  <CtxIcon src={Icon.folder} alt="" /> Pasta
+                </ContextMenuItem>
+                <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); createDesktopItem('shortcut'); setContextMenu(null) }}>
+                  <CtxIcon src={Icon.transfer16} alt="" /> Atalho
+                </ContextMenuItem>
+              </ContextSubMenu>
+            </ContextMenuSub>
+            <ContextMenuSep />
+            <ContextMenuItem onMouseDown={(e) => { e.stopPropagation(); setContextMenu(null); openApp('controlPanel') }}>
+              <CtxIcon src={Icon.controlPanel32} alt="" style={{ width: 16, height: 16 }} /> Propriedades
+            </ContextMenuItem>
           </ContextMenu>
         </>
       )}
@@ -491,11 +535,22 @@ const PromptDialog = styled.div`
   }
 `
 
-const DesktopRoot = styled.div<{ $bg: string }>`
+const DesktopRoot = styled.div<{ $bg: string; $safeMode?: boolean }>`
   position: fixed;
   inset: 0 0 30px 0;
-  background: ${(p) => (p.$bg ? `url(${p.$bg}) center/cover no-repeat, #245edc` : '#3a6ea5')};
+  background: ${(p) => (p.$safeMode ? '#000' : p.$bg ? `url(${p.$bg}) center/cover no-repeat, #245edc` : '#3a6ea5')};
   overflow: hidden;
+`
+
+const SafeText = styled.div`
+  position: absolute;
+  color: #fff;
+  font-family: 'Tahoma', sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 1000;
+  text-shadow: 1px 1px 0 #000;
 `
 
 const IconGrid = styled.div`
@@ -573,9 +628,59 @@ const ContextMenuItem = styled.div`
   font-size: 11px;
   color: #000;
   user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 
   &:hover {
     background: #0a246a;
     color: #fff;
   }
+`
+
+const CtxIcon = styled.img`
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  image-rendering: pixelated;
+`
+
+const ContextMenuSep = styled.div`
+  height: 1px;
+  background: #c0c0c0;
+  margin: 2px 4px;
+`
+
+const ContextMenuSub = styled.div`
+  padding: 4px 12px;
+  cursor: default;
+  font-family: 'Tahoma', sans-serif;
+  font-size: 11px;
+  color: #000;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+
+  &:hover {
+    background: #0a246a;
+    color: #fff;
+  }
+
+  &:hover > .ctx-submenu {
+    display: block;
+  }
+`
+
+const ContextSubMenu = styled.div`
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -2px;
+  background: #ece9d8;
+  border: 1px solid #dfdfdf;
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  min-width: 160px;
+  z-index: 10000;
 `
